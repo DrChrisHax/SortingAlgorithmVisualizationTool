@@ -17,12 +17,17 @@ def LinearSearch(arr, target):
 # O(n^2) time complexity
 # O(1) space complexity
 def BubbleSort(arr):
-    numOfElem = len(arr)
-    for i in range(numOfElem):
-        for j in range(numOfElem - i - 1):
+    n = len(arr)
+    # Loop over the array
+    for i in range(n):
+        for j in range(0, n - i - 1):
             if arr[j] > arr[j + 1]:
+                # Swap elements
                 arr[j], arr[j + 1] = arr[j + 1], arr[j]
-    return arr
+                # Yield the array and highlight the swapped indices
+                yield arr.copy(), (j, j+1)
+    # Final state (no swap highlighted)
+    yield arr.copy(), None
 
 # Merge Sort
 # Takes an array

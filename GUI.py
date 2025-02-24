@@ -6,17 +6,35 @@ import pygame_gui
 import sys
 import random
 
+from Algorithms import BubbleSort, MergeSort, QuickSort, RadixSort, LinearSearch
+
 #initialize modules
 pygame.init()
 
-mainWidth = 380     #bgNBSS = 380   bgNB = 534 
-mainHeight = 1079   #bgNBSS = 1079  bgNB = 1438
+# Initialize full-screen mode
+info = pygame.display.Info()
+screen_width = info.current_w
+screen_height = info.current_h
+window_width = screen_width - 50    # compensate for the taskbar
+window_height = screen_height - 50  # compensate for the taskbar
+screen = pygame.display.set_mode((window_width, window_height), pygame.RESIZABLE)
+pygame.display.set_caption("Algorithm Visualizer")
+
+# Load left panel GUI image
+bg = pygame.image.load("bgNBSS.png")
+# Use the image width as the GUI width
+gui_width = bg.get_width()
+
+# Define the left panel using the image width
+left_panel = pygame.Rect(0, 0, gui_width, screen_height)
+
+# Define the right panel as the rest of the screen
+right_panel = pygame.Rect(gui_width, 0, screen_width - gui_width, screen_height)
+
 
 #frames per second
 clock = pygame.time.Clock()
 refreshRate = clock.tick(60)/1000
-
-bg = pygame.image.load("bgNBSS.png")
 
 #defines text colors
 black = (0, 0, 0)
@@ -49,13 +67,9 @@ theme = {"minText":{"colours":
 
 
 #manges UI elements (only deals with the text boxes since I didn't know pygame_gui existed)
-uiManager = pygame_gui.UIManager((mainWidth, mainHeight), theme)
-
+uiManager = pygame_gui.UIManager((gui_width, screen_height), theme)
 #
 def MainMenu():
-    screen = pygame.display.set_mode((mainWidth, mainHeight))
-    pygame.display.set_caption("Algorithm Efficiency Analyzer")
-
     #buttons
     #sorting algorithm buttons
     buttonSize = (20, 20)
@@ -142,9 +156,44 @@ def MainMenu():
                 #buttons 0-4 are for the sorts and linear search
 
                 if buttonArray[0].handleEvent(event):      #button 0 (bubble)
-                    #
-                    print("bubble")
-                    #
+                    
+                    try:
+                        # Convert text box inputs to integers
+                        min_val = int(min)
+                        max_val = int(max)
+                        num = int(numElements)
+
+                        # create a random array
+                        arr = [random.randint(min_val, max_val) for _ in range(num)]
+                        print("Before Bubble Sort:", arr)
+
+                        # Create the bubble sort generator
+                        sort_generator = BubbleSort(arr)
+
+                        sorting = True
+                        while sorting:
+                            for event in pygame.event.get():
+                                # Allow quitting during the sort animation
+                                if event.type == pygame.QUIT:
+                                    pygame.quit()
+                                    sys.exit()
+
+                            try:
+                                # Get next intermediate state and swapped indicies
+                                current_arr, swap_indicies = next(sort_generator)
+                            except StopIteration:
+                                sorting = False
+                                break
+
+                            # Draw the current state of the array
+                            draw_graph(screen, current_arr, swap_indicies)
+                            pygame.time.delay(100)
+
+                        print("After Bubble Sort:", arr)
+
+                    except ValueError:
+                        print("Invalid input for array parameters.")
+
                 elif buttonArray[1].handleEvent(event):      #button 1 (merge)
                     #
                     print("merge")
@@ -213,7 +262,26 @@ def MainMenu():
 
         pygame.display.update()
 
-
+def draw_graph(graph_surface, arr, swap_indices=None):
+    graph_surface.fill(white)
+    width = graph_surface.get_width()
+    height = graph_surface.get_height()
+    bar_width = max(width // len(arr), 1)
+    max_val = max(arr) if arr else 1
+    font = pygame.font.SysFont(None, 20)
+    
+    for i, val in enumerate(arr):
+        bar_height = int((val / max_val) * (height - 50))  # leave room for numbers
+        x = i * bar_width
+        y = height - bar_height - 30  # position with an offset for text
+        color = green if swap_indices and i in swap_indices else darkGrey
+        pygame.draw.rect(graph_surface, color, (x, y, bar_width, bar_height))
+        
+        text_surface = font.render(str(val), True, black)
+        text_rect = text_surface.get_rect(center=(x + bar_width / 2, height - 15))
+        graph_surface.blit(text_surface, text_rect)
+    
+    pygame.display.update(right_panel)
 
 class Button:
     #constructor          size = (width, height)    buttonPos_ = (x, y)
