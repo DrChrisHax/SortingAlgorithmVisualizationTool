@@ -1,129 +1,126 @@
 # Algorithms.py
 
-# Linear Search
-# Takes an array and a target element
-# Returns the index of the target element or -1 if the target is not found
-# O(n) time complexity
-# O(1) space complexity
+# Linear Search Generator
+# Yields the array state at each iteration, highlighting the index being checked.
 def LinearSearch(arr, target):
     for i in range(len(arr)):
+        # Yield the current state, highlighting index i.
+        yield arr.copy(), (i,)
         if arr[i] == target:
-            return i  # Target found
-    return -1  # Target not found
+            # Optionally yield a final state showing the found index.
+            yield arr.copy(), (i,)
+            return
+    yield arr.copy(), None
 
-# Bubble Sort
-# Takes an array
-# Returns an array sorted with Bubble Sort
-# O(n^2) time complexity
-# O(1) space complexity
+
+# Bubble Sort Generator (already done)
 def BubbleSort(arr):
     n = len(arr)
-    # Loop over the array
     for i in range(n):
         for j in range(0, n - i - 1):
             if arr[j] > arr[j + 1]:
-                # Swap elements
                 arr[j], arr[j + 1] = arr[j + 1], arr[j]
-                # Yield the array and highlight the swapped indices
+                # Yield a copy of the array and highlight the swapped indices.
                 yield arr.copy(), (j, j+1)
-    # Final state (no swap highlighted)
     yield arr.copy(), None
 
-# Merge Sort
-# Takes an array
-# Returns an array sorted with Merge Sort (in-place)
-# O(n log n) time complexity
-# O(n) space complexity
-def MergeSort(arr):
-    if len(arr) > 1:
-        mid = len(arr) // 2
-        leftHalf = arr[:mid]
-        rightHalf = arr[mid:]
 
-        MergeSort(leftHalf)
-        MergeSort(rightHalf)
+# Merge Sort Generator
+# This version uses a helper merge() function that yields after each merge operation.
+def MergeSort(arr, left=0, right=None):
+    if right is None:
+        right = len(arr)
+    if right - left > 1:
+        mid = (left + right) // 2
+        yield from MergeSort(arr, left, mid)
+        yield from MergeSort(arr, mid, right)
+        yield from merge(arr, left, mid, right)
+    yield arr.copy(), None
 
-        i = j = k = 0
-        while i < len(leftHalf) and j < len(rightHalf):
-            if leftHalf[i] < rightHalf[j]:
-                arr[k] = leftHalf[i]
-                i += 1
-            else:
-                arr[k] = rightHalf[j]
-                j += 1
-            k += 1
-
-        while i < len(leftHalf):
-            arr[k] = leftHalf[i]
+def merge(arr, left, mid, right):
+    left_part = arr[left:mid]
+    right_part = arr[mid:right]
+    i = j = 0
+    k = left
+    # Merge the two halves back into arr.
+    while i < len(left_part) and j < len(right_part):
+        if left_part[i] < right_part[j]:
+            arr[k] = left_part[i]
             i += 1
-            k += 1
-
-        while j < len(rightHalf):
-            arr[k] = rightHalf[j]
+        else:
+            arr[k] = right_part[j]
             j += 1
-            k += 1
+        yield arr.copy(), (k,)
+        k += 1
+    while i < len(left_part):
+        arr[k] = left_part[i]
+        i += 1
+        yield arr.copy(), (k,)
+        k += 1
+    while j < len(right_part):
+        arr[k] = right_part[j]
+        j += 1
+        yield arr.copy(), (k,)
+        k += 1
 
-    return arr
 
-# Quick Sort
-# Takes an array
-# Returns an array sorted with Quick Sort
-# O(n log n) average time complexity, O(n^2) worst case
-# O(log n) space complexity (due to recursion)
-def QuickSort(arr):
-    if len(arr) <= 1:
-        return arr
+# Quick Sort Generator (in-place)
+def QuickSort(arr, low=0, high=None):
+    if high is None:
+        high = len(arr) - 1
+    if low < high:
+        pivot = arr[high]
+        i = low
+        # Partitioning: move elements smaller than pivot to the left.
+        for j in range(low, high):
+            if arr[j] < pivot:
+                arr[i], arr[j] = arr[j], arr[i]
+                yield arr.copy(), (i, j)
+                i += 1
+            yield arr.copy(), None
+        # Place the pivot in its correct position.
+        arr[i], arr[high] = arr[high], arr[i]
+        yield arr.copy(), (i, high)
+        # Recursively sort the left and right partitions.
+        yield from QuickSort(arr, low, i - 1)
+        yield from QuickSort(arr, i + 1, high)
+    yield arr.copy(), None
 
-    pivot = arr[len(arr) // 2]
-    left = [x for x in arr if x < pivot]
-    middle = [x for x in arr if x == pivot]
-    right = [x for x in arr if x > pivot]
 
-    return QuickSort(left) + middle + QuickSort(right)
-
-# Counting Sort (Helper for Radix Sort)
+# Counting Sort Generator (Helper for Radix Sort)
 def CountingSort(arr, exp):
-    numOfElem = len(arr)
-    output = [0] * numOfElem
+    n = len(arr)
+    output = [0] * n
     count = [0] * 10
 
-    # 1. Count occurrences of each digit in the current place
-    for i in range(numOfElem):
+    # 1. Count occurrences of each digit at the current exponent.
+    for i in range(n):
         index = (arr[i] // exp) % 10
         count[index] += 1
 
-    # 2. Convert counts to cumulative counts
+    # 2. Convert count to cumulative count.
     for i in range(1, 10):
         count[i] += count[i - 1]
 
-    # 3. Build the output array (right to left for stability)
-    for i in range(numOfElem - 1, -1, -1):
+    # 3. Build the output array (iterate from right for stability).
+    for i in range(n - 1, -1, -1):
         index = (arr[i] // exp) % 10
         output[count[index] - 1] = arr[i]
         count[index] -= 1
 
-    # 4. Copy sorted output back to the original array
-    for i in range(numOfElem):
+    # 4. Copy output back to arr, yielding after each assignment.
+    for i in range(n):
         arr[i] = output[i]
+        yield arr.copy(), (i,)
 
-# Radix Sort
-# Takes an array of non-negative integers
-# Returns the array sorted with Radix Sort
-# O(nk) time complexity where k is the number of digits 
-# O(n) space complexity
+# Radix Sort Generator
 def RadixSort(arr):
-    if not arr: return arr  # Edge case if the list is empty
-
-    # Least significant digit approach (LSD)
-    # Find the maximum number to determine the number of digits 
+    if not arr:
+        yield arr.copy(), None
+        return
     maxNum = max(arr)
     exp = 1
-
-    # Continue sorting for each digit place value
     while maxNum // exp > 0:
-        CountingSort(arr, exp)
+        yield from CountingSort(arr, exp)
         exp *= 10
-    return arr
-
-
-
+    yield arr.copy(), None

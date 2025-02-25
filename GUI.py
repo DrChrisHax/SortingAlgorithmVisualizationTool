@@ -73,8 +73,6 @@ theme = {"minText":{"colours":
 }
 
 
-
-
 #manges UI elements (only deals with the text boxes since I didn't know pygame_gui existed)
 uiManager = pygame_gui.UIManager((gui_width, screen_height), theme)
 #
@@ -86,6 +84,11 @@ def MainMenu():
     bX = 40 * imgScale       #button x coordinate
     bY = 325 * imgScale        #button y coordinate
     spaceFac = 37 * imgScale   #number of pixels each button is to be serpated
+
+    # Variables for the visualization
+    sort_generator = None    # Holds the current algorithm’s generator
+    sorting = False          # True if a generator is loaded (i.e. an algorithm was selected)
+    paused = True            # True if paused; false if running
 
     #Algorithm buttons
     bubbleSortButton = Button("", buttonSize, buttonColor, (bX, bY), 20, black)
@@ -161,112 +164,181 @@ def MainMenu():
                                                     manager = uiManager)
     speed = 75      #sets the speed for the animation
 
-    #ui update loop
+    # ui update loop
     while True:
-        clock.tick(24)              #set framerate
+        clock.tick(24)  # set framerate
+        screen.blit(bg, (0, 0))
 
-        screen.blit(bg, (0,0))
-
-        #renders the buttons every frame
+        # Render the buttons every frame.
         for button in buttonArray:
             button.update(screen)
-
-
 
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
                 pygame.quit()
                 sys.exit()
 
-            #if a certain button is pressed, run that command
+            # Update text boxes if clicking off of them.
             if event.type == pygame.MOUSEBUTTONDOWN:
-
-                #if you click off the text box, update the text box with new default values
                 minTextBox.set_text(min)
                 maxTextBox.set_text(max)
                 numElementsTextBox.set_text(numElements)
 
-                #buttons 0-4 are for the sorts and linear search
-
-                if buttonArray[0].handleEvent(event):      #button 0 (bubble)
-                    
+                # Button 0: Bubble Sort
+                if buttonArray[0].handleEvent(event):
                     try:
-                        # Convert text box inputs to integers
                         min_val = int(min)
                         max_val = int(max)
                         num = int(numElements)
-
-                        # create a random array
                         arr = [random.randint(min_val, max_val) for _ in range(num)]
                         print("Before Bubble Sort:", arr)
-
-                        # Create the bubble sort generator
                         sort_generator = BubbleSort(arr)
-
                         sorting = True
+                        paused = True
                         while sorting:
                             for event in pygame.event.get():
-                                # Allow quitting during the sort animation
                                 if event.type == pygame.QUIT:
                                     pygame.quit()
                                     sys.exit()
-
                             try:
-                                # Get next intermediate state and swapped indicies
-                                current_arr, swap_indicies = next(sort_generator)
+                                current_arr, swap_indices = next(sort_generator)
                             except StopIteration:
                                 sorting = False
                                 break
-
-                            # Draw the current state of the array
-                            draw_graph(screen, current_arr, swap_indicies)
+                            draw_graph(screen, current_arr, swap_indices)
                             pygame.time.delay(speed)
-
                         print("After Bubble Sort:", arr)
-
                     except ValueError:
                         print("Invalid input for array parameters.")
 
-                elif buttonArray[1].handleEvent(event):      #button 1 (merge)
-                    #
-                    print("merge")
-                    #
-                elif buttonArray[2].handleEvent(event):      #button 2 (quick)
-                    #
-                    print("quick")
-                    #
-                elif buttonArray[3].handleEvent(event):      #button 3 (radix)
-                    #
-                    print("radix")
-                    #
-                elif buttonArray[4].handleEvent(event):      #button 4 (linear search)
-                    #
-                    print("linear search")
-                    #
-                elif buttonArray[5].handleEvent(event):       #button 5 (runtime)
-                    #
+                # Button 1: Merge Sort
+                elif buttonArray[1].handleEvent(event):
+                    try:
+                        min_val = int(min)
+                        max_val = int(max)
+                        num = int(numElements)
+                        arr = [random.randint(min_val, max_val) for _ in range(num)]
+                        print("Before Merge Sort:", arr)
+                        sort_generator = MergeSort(arr)  # Assumes MergeSort is a generator version
+                        sorting = True
+                        paused = True
+                        while sorting:
+                            for event in pygame.event.get():
+                                if event.type == pygame.QUIT:
+                                    pygame.quit()
+                                    sys.exit()
+                            try:
+                                current_arr, swap_indices = next(sort_generator)
+                            except StopIteration:
+                                sorting = False
+                                break
+                            draw_graph(screen, current_arr, swap_indices)
+                            pygame.time.delay(speed)
+                        print("After Merge Sort:", arr)
+                    except ValueError:
+                        print("Invalid input for array parameters.")
+
+                # Button 2: Quick Sort
+                elif buttonArray[2].handleEvent(event):
+                    try:
+                        min_val = int(min)
+                        max_val = int(max)
+                        num = int(numElements)
+                        arr = [random.randint(min_val, max_val) for _ in range(num)]
+                        print("Before Quick Sort:", arr)
+                        sort_generator = QuickSort(arr)  # Assumes QuickSort is implemented as a generator
+                        sorting = True
+                        paused = True
+                        while sorting:
+                            for event in pygame.event.get():
+                                if event.type == pygame.QUIT:
+                                    pygame.quit()
+                                    sys.exit()
+                            try:
+                                current_arr, swap_indices = next(sort_generator)
+                            except StopIteration:
+                                sorting = False
+                                break
+                            draw_graph(screen, current_arr, swap_indices)
+                            pygame.time.delay(speed)
+                        print("After Quick Sort:", arr)
+                    except ValueError:
+                        print("Invalid input for array parameters.")
+
+                # Button 3: Radix Sort
+                elif buttonArray[3].handleEvent(event):
+                    try:
+                        min_val = int(min)
+                        max_val = int(max)
+                        num = int(numElements)
+                        arr = [random.randint(min_val, max_val) for _ in range(num)]
+                        print("Before Radix Sort:", arr)
+                        sort_generator = RadixSort(arr)  # Assumes RadixSort is implemented as a generator
+                        sorting = True
+                        paused = True
+                        while sorting:
+                            for event in pygame.event.get():
+                                if event.type == pygame.QUIT:
+                                    pygame.quit()
+                                    sys.exit()
+                            try:
+                                current_arr, swap_indices = next(sort_generator)
+                            except StopIteration:
+                                sorting = False
+                                break
+                            draw_graph(screen, current_arr, swap_indices)
+                            pygame.time.delay(speed)
+                        print("After Radix Sort:", arr)
+                    except ValueError:
+                        print("Invalid input for array parameters.")
+
+                # Button 4: Linear Search
+                elif buttonArray[4].handleEvent(event):
+                    try:
+                        min_val = int(min)
+                        max_val = int(max)
+                        num = int(numElements)
+                        arr = [random.randint(min_val, max_val) for _ in range(num)]
+                        # Choose a target that is guaranteed to be in the array.
+                        target = random.choice(arr)
+                        print("Array for Linear Search:", arr)
+                        print("Target for Linear Search:", target)
+                        search_generator = LinearSearch(arr, target)
+                        searching = True
+                        paused = True
+                        while searching:
+                            for event in pygame.event.get():
+                                if event.type == pygame.QUIT:
+                                    pygame.quit()
+                                    sys.exit()
+                            try:
+                                current_arr, highlight = next(search_generator)
+                            except StopIteration:
+                                searching = False
+                                break
+                            draw_graph(screen, current_arr, highlight)
+                            pygame.time.delay(speed)
+                        print("Target found at index:", arr.index(target))
+                    except ValueError:
+                        print("Invalid input for array parameters.")
+
+                # Additional buttons (runtime, space, reset, start, etc.) remain unchanged.
+                elif buttonArray[5].handleEvent(event):       # button 5 (runtime)
                     print("runtime")
-                    #
-                elif buttonArray[6].handleEvent(event):       #button 6 (space)
-                    #
+                elif buttonArray[6].handleEvent(event):       # button 6 (space)
                     print("space")
-                    #
-                elif buttonArray[7].handleEvent(event):       #button # (reset)
-                    #
+                elif buttonArray[7].handleEvent(event):       # button 7 (reset)
                     print("R")
-                    #
-                elif buttonArray[8].handleEvent(event):       #button # (start)
-                    #
-                    print("S")
-                    #
-                elif buttonArray[9].handleEvent(event):       #button # (graph1 (line))
-                    #
+                # Button 8: Start/Stop button
+                elif buttonArray[8].handleEvent(event):
+                    if paused:
+                        paused = False
+                    else:
+                        paused = True
+                elif buttonArray[9].handleEvent(event):       # button 9 (graph1 - line)
                     print("L")
-                    #
-                elif buttonArray[10].handleEvent(event):       #button # (graph2 (bar))
-                    #
+                elif buttonArray[10].handleEvent(event):      # button 10 (graph2 - bar)
                     print("b")
-                    #
 
             #save the text typed in the respective textbox in min, max, and numElements
             if event.type == pygame_gui.UI_TEXT_ENTRY_CHANGED:
@@ -296,6 +368,15 @@ def MainMenu():
         uiManager.process_events(event)
         uiManager.update(refreshRate)  
         uiManager.draw_ui(screen)      
+
+        if sorting and not paused and sort_generator is not None:
+            try:
+                current_arr, swap_indices = next(sort_generator)
+                draw_graph(screen, current_arr, swap_indices)
+                pygame.time.delay(speed)
+            except StopIteration:
+                sorting = False
+                print("Sorting/search complete.")
 
         pygame.display.update()
 
