@@ -1,410 +1,131 @@
+import multiprocessing
+try:
+    multiprocessing.set_start_method('spawn')
+except RuntimeError:
+    pass
+
 import matplotlib.pyplot as plt
 import numpy as np
-
 import pygame
 import pygame_gui
 import sys
 import random
+from multiprocessing import Process
 
 from Algorithms import BubbleSort, MergeSort, QuickSort, RadixSort, LinearSearch
 
-#initialize modules
-pygame.init()
+# -----------------------------
+# Function: run_visualizer
+# -----------------------------
+def run_visualizer(algo_name, min_val, max_val, num, speed, pause_event):
+    pygame.init()
+    window_size = (1200, 600)
+    window = pygame.display.set_mode(window_size)
+    pygame.display.set_caption(f"{algo_name} Visualizer")
+    
+    white   = (255, 255, 255)
+    darkGrey= (84, 84, 84)
+    green   = (193, 255, 114)
+    black   = (0, 0, 0)
+    
+    # Create random array.
+    arr = [random.randint(min_val, max_val) for _ in range(num)]
+    if algo_name == "LinearSearch":
+        target = random.choice(arr)
+        print("Linear Search - Array:", arr)
+        print("Linear Search - Target:", target)
+    
+    if algo_name == "BubbleSort":
+        generator = BubbleSort(arr)
+    elif algo_name == "MergeSort":
+        generator = MergeSort(arr)
+    elif algo_name == "QuickSort":
+        generator = QuickSort(arr)
+    elif algo_name == "RadixSort":
+        generator = RadixSort(arr)
+    elif algo_name == "LinearSearch":
+        generator = LinearSearch(arr, target)
+    else:
+        print("Unknown algorithm.")
+        return
 
-# Initialize full-screen mode
-info = pygame.display.Info()
-screen_width = info.current_w
-screen_height = info.current_h
-window_width = screen_width - 50    # compensate for the taskbar
-window_height = screen_height - 50  # compensate for the taskbar
-screen = pygame.display.set_mode((window_width, window_height), pygame.RESIZABLE)
-pygame.display.set_caption("Algorithm Visualizer")
-
-# Load left panel GUI image
-bg = pygame.image.load("bgNBSVS.png")
-imgScale = 0.91
-
-
-# Use the image width as the GUI width
-gui_width = bg.get_width()
-
-# Define the left panel using the image width
-left_panel = pygame.Rect(0, 0, gui_width, screen_height)
-
-# Define the right panel as the rest of the screen
-right_panel = pygame.Rect(gui_width, 0, screen_width - gui_width, screen_height)
-
-
-#frames per second
-clock = pygame.time.Clock()
-refreshRate = clock.tick(60)/1000
-
-#defines text colors
-black = (0, 0, 0)
-white = (255, 255, 255)
-lightgrey = (217,217,217)
-darkGrey = (84, 84, 84)
-darkishGray = (166, 166, 166) 
-green = (193,255,114)
-
-
-screen.fill(white)  #gives the application a white background
-
-
-#theme for text boxes
-theme = {"minText":{"colours":
-         {
-             "dark_bg":"#FFFFFF",
-             "normal_text":"#000000"
-         }
-        },
-        "maxText":{"colours":
-         {
-             "dark_bg":"#FFFFFF",
-             "normal_text":"#000000"
-         }
-        },        
-        "numElementsText":{"colours":
-         {
-             "dark_bg":"#FFFFFF",
-             "normal_text":"#000000"
-         },
-        }
-}
-
-
-#manges UI elements (only deals with the text boxes since I didn't know pygame_gui existed)
-uiManager = pygame_gui.UIManager((gui_width, screen_height), theme)
-#
-def MainMenu():
-    #buttons
-    #sorting algorithm buttons
-    buttonSize = (20, 20)
-    buttonColor = white
-    bX = 40 * imgScale       #button x coordinate
-    bY = 325 * imgScale        #button y coordinate
-    spaceFac = 37 * imgScale   #number of pixels each button is to be serpated
-
-    # Variables for the visualization
-    sort_generator = None    # Holds the current algorithm’s generator
-    sorting = False          # True if a generator is loaded (i.e. an algorithm was selected)
-    paused = True            # True if paused; false if running
-
-    #Algorithm buttons
-    bubbleSortButton = Button("", buttonSize, buttonColor, (bX, bY), 20, black)
-    mergeSortButton = Button("", buttonSize, buttonColor, (bX, bY + spaceFac), 20, black)
-    quickSortButton = Button("", buttonSize, buttonColor, (bX, bY + spaceFac * 2), 20, black)
-    radixSortButton = Button("", buttonSize, buttonColor, (bX, bY + spaceFac * 3), 20, black)
-    linearSearchButton = Button("", buttonSize, buttonColor, (bX, bY + spaceFac * 4), 20, black)
-
-    #Buttons for runtime and space
-    runtimeButton = Button("", buttonSize, buttonColor, (230 * imgScale, 365 * imgScale), 20, black)
-    spaceButton = Button("", buttonSize, buttonColor, (230 * imgScale, 410 * imgScale), 20, black)
-
-    #buttons for controls
-    controlButtonSize = (200 * imgScale, 65 * imgScale)
-    resetButton = Button("Reset", controlButtonSize, buttonColor, (90 * imgScale, 700 * imgScale), 40, black, False)
-    startButton = Button("Start/Stop", controlButtonSize, buttonColor, (90 * imgScale, 800 * imgScale), 40, black)
-
-    #buttons for the graph comparisons
-    graphButtonSize = (140 * imgScale, 40 * imgScale)
-    lineGraphButton = Button("Line Graph", graphButtonSize, buttonColor, 
-                            (40 * imgScale, 999 * imgScale), 
-                            25, 
-                            black, 
-                            False)
-    barGraphButton = Button("Bar Graph", graphButtonSize, buttonColor, 
-                            (200 * imgScale, 999 * imgScale), 
-                            25, 
-                            black, 
-                            False)
-
-
-
-    #array of all active buttons
-    buttonArray = [bubbleSortButton, mergeSortButton, quickSortButton,               #Array to keep track of the buttons on screen
-                   radixSortButton, linearSearchButton, runtimeButton, 
-                   spaceButton, resetButton, startButton, lineGraphButton,
-                   barGraphButton]     
-
-
-    #user boxtext inputs
-    textBoxRectWidth = 70 * imgScale
-    textBoxRectHeight = 40 * imgScale
-
-    minTextBox = pygame_gui.elements.UITextEntryLine(relative_rect = pygame.Rect(100 * imgScale, 85 * imgScale, textBoxRectWidth, textBoxRectHeight), 
-                                                    manager=uiManager, 
-                                                    object_id = "minText")
-    maxTextBox = pygame_gui.elements.UITextEntryLine(relative_rect = pygame.Rect(280 * imgScale, 85 * imgScale, textBoxRectWidth, textBoxRectHeight), 
-                                                    manager=uiManager, 
-                                                    object_id = "maxText")
-    numElementsTextBox = pygame_gui.elements.UITextEntryLine(relative_rect = pygame.Rect(210 * imgScale, 152 * imgScale, textBoxRectWidth, textBoxRectHeight),
-                                                             manager=uiManager, 
-                                                             object_id = "numElementsText")
-
-
-    #vars for the array size
-    min = "0"
-    max = "100"
-    numElements = "50"
-
-
-    #set default textbox
-    minTextBox.set_text(min)
-    maxTextBox.set_text(max)
-    numElementsTextBox.set_text(numElements)
-
-
-    #slider UI object
-    sX = 10 * imgScale
-    sY = 648 * imgScale
-    slider = pygame_gui.elements.UIHorizontalSlider(relative_rect = pygame.Rect(sX, sY, 360 * imgScale, 20 * imgScale), 
-                                                    start_value = 50, 
-                                                    value_range = [100, 0], 
-                                                    manager = uiManager)
-    speed = 75      #sets the speed for the animation
-
-    # ui update loop
-    while True:
-        clock.tick(24)  # set framerate
-        screen.blit(bg, (0, 0))
-
-        # Render the buttons every frame.
-        for button in buttonArray:
-            button.update(screen)
-
+    clock = pygame.time.Clock()
+    running = True
+    while running:
+        clock.tick(60)
+        # Check pause_event. While paused, keep processing events.
+        while pause_event.is_set():
+            for event in pygame.event.get():
+                if event.type == pygame.QUIT:
+                    running = False
+            pygame.time.delay(100)
+        
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
-                pygame.quit()
-                sys.exit()
+                running = False
 
-            # Update text boxes if clicking off of them.
-            if event.type == pygame.MOUSEBUTTONDOWN:
-                minTextBox.set_text(min)
-                maxTextBox.set_text(max)
-                numElementsTextBox.set_text(numElements)
+        try:
+            current_arr, swap_indices = next(generator)
+        except StopIteration:
+            running = False
+            break
 
-                # Button 0: Bubble Sort
-                if buttonArray[0].handleEvent(event):
-                    try:
-                        min_val = int(min)
-                        max_val = int(max)
-                        num = int(numElements)
-                        arr = [random.randint(min_val, max_val) for _ in range(num)]
-                        print("Before Bubble Sort:", arr)
-                        sort_generator = BubbleSort(arr)
-                        sorting = True
-                        paused = True
-                        while sorting:
-                            for event in pygame.event.get():
-                                if event.type == pygame.QUIT:
-                                    pygame.quit()
-                                    sys.exit()
-                            try:
-                                current_arr, swap_indices = next(sort_generator)
-                            except StopIteration:
-                                sorting = False
-                                break
-                            draw_graph(screen, current_arr, swap_indices)
-                            pygame.time.delay(speed)
-                        print("After Bubble Sort:", arr)
-                    except ValueError:
-                        print("Invalid input for array parameters.")
-
-                # Button 1: Merge Sort
-                elif buttonArray[1].handleEvent(event):
-                    try:
-                        min_val = int(min)
-                        max_val = int(max)
-                        num = int(numElements)
-                        arr = [random.randint(min_val, max_val) for _ in range(num)]
-                        print("Before Merge Sort:", arr)
-                        sort_generator = MergeSort(arr)  # Assumes MergeSort is a generator version
-                        sorting = True
-                        paused = True
-                        while sorting:
-                            for event in pygame.event.get():
-                                if event.type == pygame.QUIT:
-                                    pygame.quit()
-                                    sys.exit()
-                            try:
-                                current_arr, swap_indices = next(sort_generator)
-                            except StopIteration:
-                                sorting = False
-                                break
-                            draw_graph(screen, current_arr, swap_indices)
-                            pygame.time.delay(speed)
-                        print("After Merge Sort:", arr)
-                    except ValueError:
-                        print("Invalid input for array parameters.")
-
-                # Button 2: Quick Sort
-                elif buttonArray[2].handleEvent(event):
-                    try:
-                        min_val = int(min)
-                        max_val = int(max)
-                        num = int(numElements)
-                        arr = [random.randint(min_val, max_val) for _ in range(num)]
-                        print("Before Quick Sort:", arr)
-                        sort_generator = QuickSort(arr)  # Assumes QuickSort is implemented as a generator
-                        sorting = True
-                        paused = True
-                        while sorting:
-                            for event in pygame.event.get():
-                                if event.type == pygame.QUIT:
-                                    pygame.quit()
-                                    sys.exit()
-                            try:
-                                current_arr, swap_indices = next(sort_generator)
-                            except StopIteration:
-                                sorting = False
-                                break
-                            draw_graph(screen, current_arr, swap_indices)
-                            pygame.time.delay(speed)
-                        print("After Quick Sort:", arr)
-                    except ValueError:
-                        print("Invalid input for array parameters.")
-
-                # Button 3: Radix Sort
-                elif buttonArray[3].handleEvent(event):
-                    try:
-                        min_val = int(min)
-                        max_val = int(max)
-                        num = int(numElements)
-                        arr = [random.randint(min_val, max_val) for _ in range(num)]
-                        print("Before Radix Sort:", arr)
-                        sort_generator = RadixSort(arr)  # Assumes RadixSort is implemented as a generator
-                        sorting = True
-                        paused = True
-                        while sorting:
-                            for event in pygame.event.get():
-                                if event.type == pygame.QUIT:
-                                    pygame.quit()
-                                    sys.exit()
-                            try:
-                                current_arr, swap_indices = next(sort_generator)
-                            except StopIteration:
-                                sorting = False
-                                break
-                            draw_graph(screen, current_arr, swap_indices)
-                            pygame.time.delay(speed)
-                        print("After Radix Sort:", arr)
-                    except ValueError:
-                        print("Invalid input for array parameters.")
-
-                # Button 4: Linear Search
-                elif buttonArray[4].handleEvent(event):
-                    try:
-                        min_val = int(min)
-                        max_val = int(max)
-                        num = int(numElements)
-                        arr = [random.randint(min_val, max_val) for _ in range(num)]
-                        # Choose a target that is guaranteed to be in the array.
-                        target = random.choice(arr)
-                        print("Array for Linear Search:", arr)
-                        print("Target for Linear Search:", target)
-                        search_generator = LinearSearch(arr, target)
-                        searching = True
-                        paused = True
-                        while searching:
-                            for event in pygame.event.get():
-                                if event.type == pygame.QUIT:
-                                    pygame.quit()
-                                    sys.exit()
-                            try:
-                                current_arr, highlight = next(search_generator)
-                            except StopIteration:
-                                searching = False
-                                break
-                            draw_graph(screen, current_arr, highlight)
-                            pygame.time.delay(speed)
-                        print("Target found at index:", arr.index(target))
-                    except ValueError:
-                        print("Invalid input for array parameters.")
-
-                # Additional buttons (runtime, space, reset, start, etc.) remain unchanged.
-                elif buttonArray[5].handleEvent(event):       # button 5 (runtime)
-                    print("runtime")
-                elif buttonArray[6].handleEvent(event):       # button 6 (space)
-                    print("space")
-                elif buttonArray[7].handleEvent(event):       # button 7 (reset)
-                    print("R")
-                # Button 8: Start/Stop button
-                elif buttonArray[8].handleEvent(event):
-                    if paused:
-                        paused = False
-                    else:
-                        paused = True
-                elif buttonArray[9].handleEvent(event):       # button 9 (graph1 - line)
-                    print("L")
-                elif buttonArray[10].handleEvent(event):      # button 10 (graph2 - bar)
-                    print("b")
-
-            #save the text typed in the respective textbox in min, max, and numElements
-            if event.type == pygame_gui.UI_TEXT_ENTRY_CHANGED:
-                if event.ui_object_id == "minText":
-                    min = event.text
-
-                    if(not min):    #default case if empty
-                        min = "0"
-
-                if event.ui_object_id == "maxText":
-                    max = event.text
-
-                    if(not max):    #default case if empty
-                        max = "100"
-
-                if event.ui_object_id == "numElementsText":
-                    
-                    numElements = event.text
-                    if(not numElements):    #default case if empty
-                        numElements = "50"
-
-            if event.type == pygame_gui.UI_HORIZONTAL_SLIDER_MOVED:
-                speed = event.value
-
-
-        #update the text boxes every frame
-        uiManager.process_events(event)
-        uiManager.update(refreshRate)  
-        uiManager.draw_ui(screen)      
-
-        if sorting and not paused and sort_generator is not None:
-            try:
-                current_arr, swap_indices = next(sort_generator)
-                draw_graph(screen, current_arr, swap_indices)
-                pygame.time.delay(speed)
-            except StopIteration:
-                sorting = False
-                print("Sorting/search complete.")
-
+        window.fill(white)
+        width, height = window.get_size()
+        bar_width = max(width // len(current_arr), 1)
+        max_val_in_array = max(current_arr) if current_arr else 1
+        font = pygame.font.SysFont(None, 20)
+        for i, val in enumerate(current_arr):
+            bar_height = int((val / max_val_in_array) * (height - 50))
+            x = i * bar_width
+            y = height - bar_height - 30
+            color = green if swap_indices and i in swap_indices else darkGrey
+            pygame.draw.rect(window, color, (x, y, bar_width, bar_height))
+            text_surface = font.render(str(val), True, black)
+            text_rect = text_surface.get_rect(center=(x + bar_width / 2, height - 15))
+            window.blit(text_surface, text_rect)
         pygame.display.update()
+        pygame.time.delay(speed)
+    pygame.quit()
+    sys.exit()
 
-def draw_graph(graph_surface, arr, swap_indices=None):
-    graph_surface.fill(white)
-    width = graph_surface.get_width()
-    height = graph_surface.get_height()
-    bar_width = max(width // len(arr), 1)
-    max_val = max(arr) if arr else 1
-    font = pygame.font.SysFont(None, 20)
-    
-    for i, val in enumerate(arr):
-        bar_height = int((val / max_val) * (height - 50))  # leave room for numbers
-        x = i * bar_width
-        y = height - bar_height - 30  # position with an offset for text
-        color = green if swap_indices and i in swap_indices else darkGrey
-        pygame.draw.rect(graph_surface, color, (x, y, bar_width, bar_height))
-        
-        text_surface = font.render(str(val), True, black)
-        text_rect = text_surface.get_rect(center=(x + bar_width / 2, height - 15))
-        graph_surface.blit(text_surface, text_rect)
-    
-    pygame.display.update(right_panel)
+# -----------------------------
+# Main GUI Code (Left Panel Only)
+# -----------------------------
+pygame.init()
 
+# Load the left panel GUI image.
+bg = pygame.image.load("bgNBSVS.png")
+imgScale = 0.91
+gui_width = bg.get_width()
+gui_height = int(bg.get_height() * imgScale)  # Use scaled height
+
+screen = pygame.display.set_mode((gui_width, gui_height), pygame.RESIZABLE)
+pygame.display.set_caption("Algorithm Visualizer - Main Control")
+
+clock = pygame.time.Clock()
+
+black     = (0, 0, 0)
+white     = (255, 255, 255)
+lightgrey = (217, 217, 217)
+darkGrey  = (84, 84, 84)
+green     = (193, 255, 114)
+
+screen.fill(white)
+
+theme = {
+    "minText": {"colours": {"dark_bg": "#FFFFFF", "normal_text": "#000000"}},
+    "maxText": {"colours": {"dark_bg": "#FFFFFF", "normal_text": "#000000"}},
+    "numElementsText": {"colours": {"dark_bg": "#FFFFFF", "normal_text": "#000000"}}
+}
+
+uiManager = pygame_gui.UIManager((gui_width, gui_height), theme)
+
+###############################################################################
+# Class: Button (with optional text rendering)
+###############################################################################
 class Button:
-    #constructor          size = (width, height)    buttonPos_ = (x, y)
-    def __init__(self, buttonText_, size_, buttonColor_, buttonPos_, fontSize_, textColor_, isToggle_ = True):
-        
+    def __init__(self, buttonText_, size_, buttonColor_, buttonPos_, fontSize_, textColor_, isToggle_=True, showText=True):
         self.buttonText = buttonText_
         self.size = size_
         self.buttonColor = buttonColor_
@@ -412,58 +133,232 @@ class Button:
         self.currentColor = self.buttonColor
         self.buttonPos = buttonPos_
         self.font = pygame.font.Font(None, fontSize_)
-        self.middle = (self.buttonPos[0] + (self.size[0] // 2), self.buttonPos[1] + (self.size[1] // 2))
-
-        #if the button color is dark, make the color lighter when pressed
+        self.middle = (self.buttonPos[0] + self.size[0] // 2, self.buttonPos[1] + self.size[1] // 2)
         if self.buttonColor[0] > 75 and self.buttonColor[1] > 75 and self.buttonColor[2] > 75:
-            self.buttonColorDark = (self.buttonColor[0]-60, self.buttonColor[1]-60, self.buttonColor[2]-60) 
+            self.buttonColorDark = (self.buttonColor[0] - 60, self.buttonColor[1] - 60, self.buttonColor[2] - 60)
         else:
-            self.buttonColorDark = (self.buttonColor[0]+50, self.buttonColor[1]+50, self.buttonColor[2]+50)
-
+            self.buttonColorDark = (self.buttonColor[0] + 50, self.buttonColor[1] + 50, self.buttonColor[2] + 50)
         self.text = self.font.render(self.buttonText, True, self.textColor)
         self.rect = pygame.Rect(self.buttonPos[0], self.buttonPos[1], self.size[0], self.size[1])
-        
-        self.isPushed = False       #bool that stores if the button has been pushed or not
-        self.isToggle = isToggle_   #if true, the button can be clicked once, and it stays active
-                                    #if false, can be clicked once, and turns off after click
-
-
-    def update(self, screen):
-        pygame.draw.rect(screen, self.currentColor, self.rect, border_radius=10)
-        pygame.draw.rect(screen, (0, 0, 0), self.rect, 2, border_radius=10)
-
-
-        self.text = self.font.render(self.buttonText, True, self.textColor)
-        #self.rect = pygame.Rect(self.buttonPos[0], self.buttonPos[1], self.size[0], self.size[1], center = self.middle)
-        textRect = self.text.get_rect(center = self.middle)
-
-        screen.blit(self.text, textRect)
-
-
-    #checks if the button has been pressed
+        self.isPushed = False
+        self.isToggle = isToggle_
+        self.showText = showText
+    
+    def update(self, surface):
+        pygame.draw.rect(surface, self.currentColor, self.rect, border_radius=10)
+        pygame.draw.rect(surface, (0, 0, 0), self.rect, 2, border_radius=10)
+        if self.showText:
+            self.text = self.font.render(self.buttonText, True, self.textColor)
+            textRect = self.text.get_rect(center=self.middle)
+            surface.blit(self.text, textRect)
+    
     def handleEvent(self, event):
-            
-            #isTrue becomes true if the button was clicked
-            #darkens the button on click
-            #the opposite happens when clicked again
-            if self.isToggle:
-                if event.type == pygame.MOUSEBUTTONDOWN:
-                    if self.rect.collidepoint(event.pos) and not self.isPushed: #if not pushed
-                        self.currentColor = self.buttonColorDark
-                        self.isPushed = True
-                        return True
-                    if self.rect.collidepoint(event.pos) and self.isPushed:   #if pushed again
-                        self.currentColor = self.buttonColor
-                        self.isPushed = False
-                        return False
-            else:
-                if event.type == pygame.MOUSEBUTTONDOWN:
-                    if self.rect.collidepoint(event.pos):
-                        return True
-                    
+        if self.isToggle:
+            if event.type == pygame.MOUSEBUTTONDOWN:
+                if self.rect.collidepoint(event.pos) and not self.isPushed:
+                    self.currentColor = self.buttonColorDark
+                    self.isPushed = True
+                    return True
+                if self.rect.collidepoint(event.pos) and self.isPushed:
+                    self.currentColor = self.buttonColor
+                    self.isPushed = False
+                    return False
+        else:
+            if event.type == pygame.MOUSEBUTTONDOWN and self.rect.collidepoint(event.pos):
+                return True
 
-#call main menu function
-MainMenu()
+###############################################################################
+# Function: MainMenu (Main control GUI for left panel only)
+###############################################################################
+def MainMenu():
+    global min_value, max_value, num_elements, speed
+
+    # Default parameters.
+    min_value = "0"
+    max_value = "100"
+    num_elements = "50"
+    speed = 75
+
+    # Global lists to store pending selections and spawned processes.
+    pending_algorithms = []  # List of algorithm names selected.
+    processes = []           # List of Process objects.
+    pause_event = multiprocessing.Event()
+    pause_event.set()   # Initially paused.
+
+    # GUI layout.
+    buttonSize = (20, 20)
+    buttonColor = white
+    bX = 40 * imgScale
+    bY = 325 * imgScale
+    spaceFac = 37 * imgScale
+
+    # Create algorithm selection buttons (no text).
+    bubbleSortButton   = Button("Bubble",   buttonSize, buttonColor, (bX, bY),                   20, black, showText=False)
+    mergeSortButton    = Button("Merge",    buttonSize, buttonColor, (bX, bY + spaceFac),          20, black, showText=False)
+    quickSortButton    = Button("Quick",    buttonSize, buttonColor, (bX, bY + spaceFac * 2),      20, black, showText=False)
+    radixSortButton    = Button("Radix",    buttonSize, buttonColor, (bX, bY + spaceFac * 3),      20, black, showText=False)
+    linearSearchButton = Button("Search",   buttonSize, buttonColor, (bX, bY + spaceFac * 4),      20, black, showText=False)
+
+    # Create analysis/running buttons (no text for runtime/space).
+    runtimeButton = Button("RunTime", buttonSize, buttonColor, (230 * imgScale, 365 * imgScale), 20, black, showText=False)
+    spaceButton   = Button("Space",   buttonSize, buttonColor, (230 * imgScale, 410 * imgScale), 20, black, showText=False)
+    # Control buttons (with text).
+    controlButtonSize = (200 * imgScale, 65 * imgScale)
+    resetButton   = Button("Reset",     controlButtonSize, buttonColor, (90 * imgScale, 700 * imgScale), 40, black, False, showText=True)
+    # For the Start/Stop button, set isToggle to False so that each press registers once.
+    startButton   = Button("Start/Stop", controlButtonSize, buttonColor, (90 * imgScale, 800 * imgScale), 40, black, isToggle_=False, showText=True)
+    graphButtonSize = (140 * imgScale, 40 * imgScale)
+    lineGraphButton = Button("Line",     graphButtonSize, buttonColor, (40 * imgScale, 999 * imgScale), 25, black, False, showText=True)
+    barGraphButton  = Button("Bar",      graphButtonSize, buttonColor, (200 * imgScale, 999 * imgScale), 25, black, False, showText=True)
+
+    buttonArray = [bubbleSortButton, mergeSortButton, quickSortButton,
+                   radixSortButton, linearSearchButton, runtimeButton,
+                   spaceButton, resetButton, startButton, lineGraphButton,
+                   barGraphButton]
+
+    textBoxRectWidth = 70 * imgScale
+    textBoxRectHeight = 40 * imgScale
+    minTextBox = pygame_gui.elements.UITextEntryLine(
+        relative_rect=pygame.Rect(100 * imgScale, 85 * imgScale, textBoxRectWidth, textBoxRectHeight),
+        manager=uiManager, object_id="minText")
+    maxTextBox = pygame_gui.elements.UITextEntryLine(
+        relative_rect=pygame.Rect(280 * imgScale, 85 * imgScale, textBoxRectWidth, textBoxRectHeight),
+        manager=uiManager, object_id="maxText")
+    numElementsTextBox = pygame_gui.elements.UITextEntryLine(
+        relative_rect=pygame.Rect(210 * imgScale, 152 * imgScale, textBoxRectWidth, textBoxRectHeight),
+        manager=uiManager, object_id="numElementsText")
+
+    minTextBox.set_text(min_value)
+    maxTextBox.set_text(max_value)
+    numElementsTextBox.set_text(num_elements)
+
+    sX = 10 * imgScale
+    sY = 648 * imgScale
+    slider = pygame_gui.elements.UIHorizontalSlider(
+        relative_rect=pygame.Rect(sX, sY, 360 * imgScale, 20 * imgScale),
+        start_value=75, value_range=[100, 0], manager=uiManager)
+
+    while True:
+        dt = clock.tick(24) / 1000.0
+        events = pygame.event.get()
+
+        for event in events:
+            if event.type == pygame.QUIT:
+                # Terminate all spawned processes.
+                for proc in processes:
+                    proc.terminate()
+                pygame.quit()
+                sys.exit()
+            
+            uiManager.process_events(event)
+            
+            if event.type == pygame.MOUSEBUTTONDOWN:
+                minTextBox.set_text(min_value)
+                maxTextBox.set_text(max_value)
+                numElementsTextBox.set_text(num_elements)
+                
+                # Toggle algorithm selection instead of immediate spawning.
+                if bubbleSortButton.handleEvent(event):
+                    if "BubbleSort" not in pending_algorithms:
+                        pending_algorithms.append("BubbleSort")
+                        print("BubbleSort selected.")
+                    else:
+                        pending_algorithms.remove("BubbleSort")
+                        print("BubbleSort deselected.")
+                
+                elif mergeSortButton.handleEvent(event):
+                    if "MergeSort" not in pending_algorithms:
+                        pending_algorithms.append("MergeSort")
+                        print("MergeSort selected.")
+                    else:
+                        pending_algorithms.remove("MergeSort")
+                        print("MergeSort deselected.")
+                
+                elif quickSortButton.handleEvent(event):
+                    if "QuickSort" not in pending_algorithms:
+                        pending_algorithms.append("QuickSort")
+                        print("QuickSort selected.")
+                    else:
+                        pending_algorithms.remove("QuickSort")
+                        print("QuickSort deselected.")
+                
+                elif radixSortButton.handleEvent(event):
+                    if "RadixSort" not in pending_algorithms:
+                        pending_algorithms.append("RadixSort")
+                        print("RadixSort selected.")
+                    else:
+                        pending_algorithms.remove("RadixSort")
+                        print("RadixSort deselected.")
+                
+                elif linearSearchButton.handleEvent(event):
+                    if "LinearSearch" not in pending_algorithms:
+                        pending_algorithms.append("LinearSearch")
+                        print("LinearSearch selected.")
+                    else:
+                        pending_algorithms.remove("LinearSearch")
+                        print("LinearSearch deselected.")
+                
+                # Other buttons.
+                elif runtimeButton.handleEvent(event):
+                    print("runtime")
+                elif spaceButton.handleEvent(event):
+                    print("space")
+                elif resetButton.handleEvent(event):
+                    print("Reset pressed")
+                # Start/Stop button: if there are pending algorithms and no processes, spawn them.
+                elif startButton.handleEvent(event):
+                    if not processes and pending_algorithms:
+                        # Spawn a visualizer for each pending algorithm.
+                        for algo in pending_algorithms:
+                            m_val = int(min_value)
+                            M_val = int(max_value)
+                            n = int(num_elements)
+                            p = Process(target=run_visualizer, args=(algo, m_val, M_val, n, speed, pause_event))
+                            p.start()
+                            processes.append(p)
+                        pending_algorithms.clear()
+                        # Now resume running by clearing the pause event.
+                        pause_event.clear()
+                        print("Visualizers started and running.")
+                    else:
+                        # Toggle pause/resume for all visualizers.
+                        if pause_event.is_set():
+                            pause_event.clear()
+                            print("Resumed all visualizers.")
+                        else:
+                            pause_event.set()
+                            print("Paused all visualizers.")
+                
+                elif lineGraphButton.handleEvent(event):
+                    print("Line graph button pressed")
+                elif barGraphButton.handleEvent(event):
+                    print("Bar graph button pressed")
+            
+            if event.type == pygame_gui.UI_TEXT_ENTRY_CHANGED:
+                if event.ui_object_id == "minText":
+                    min_value = event.text or "0"
+                if event.ui_object_id == "maxText":
+                    max_value = event.text or "100"
+                if event.ui_object_id == "numElementsText":
+                    num_elements = event.text or "50"
+            
+            if event.type == pygame_gui.UI_HORIZONTAL_SLIDER_MOVED:
+                speed = event.value
+
+        uiManager.update(dt)
+        screen.fill(lightgrey)
+        screen.blit(bg, (0, 0))
+        uiManager.draw_ui(screen)
+        for btn in buttonArray:
+            btn.update(screen)
+        
+        pygame.display.update()
+
+if __name__ == '__main__':
+    MainMenu()
+
+
+
 
 
 
