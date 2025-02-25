@@ -21,7 +21,10 @@ screen = pygame.display.set_mode((window_width, window_height), pygame.RESIZABLE
 pygame.display.set_caption("Algorithm Visualizer")
 
 # Load left panel GUI image
-bg = pygame.image.load("bgNBSS.png")
+bg = pygame.image.load("bgNBSVS.png")
+imgScale = 0.91
+
+
 # Use the image width as the GUI width
 gui_width = bg.get_width()
 
@@ -45,6 +48,9 @@ darkishGray = (166, 166, 166)
 green = (193,255,114)
 
 
+screen.fill(white)  #gives the application a white background
+
+
 #theme for text boxes
 theme = {"minText":{"colours":
          {
@@ -62,8 +68,11 @@ theme = {"minText":{"colours":
          {
              "dark_bg":"#FFFFFF",
              "normal_text":"#000000"
-         }
-        }}
+         },
+        }
+}
+
+
 
 
 #manges UI elements (only deals with the text boxes since I didn't know pygame_gui existed)
@@ -74,9 +83,9 @@ def MainMenu():
     #sorting algorithm buttons
     buttonSize = (20, 20)
     buttonColor = white
-    bX = 40        #button x coordinate
-    bY = 325        #button y coordinate
-    spaceFac = 37   #number of pixels each button is to be serpated
+    bX = 40 * imgScale       #button x coordinate
+    bY = 325 * imgScale        #button y coordinate
+    spaceFac = 37 * imgScale   #number of pixels each button is to be serpated
 
     #Algorithm buttons
     bubbleSortButton = Button("", buttonSize, buttonColor, (bX, bY), 20, black)
@@ -86,18 +95,26 @@ def MainMenu():
     linearSearchButton = Button("", buttonSize, buttonColor, (bX, bY + spaceFac * 4), 20, black)
 
     #Buttons for runtime and space
-    runtimeButton = Button("", buttonSize, buttonColor, (230, 365), 20, black)
-    spaceButton = Button("", buttonSize, buttonColor, (230, 410), 20, black)
+    runtimeButton = Button("", buttonSize, buttonColor, (230 * imgScale, 365 * imgScale), 20, black)
+    spaceButton = Button("", buttonSize, buttonColor, (230 * imgScale, 410 * imgScale), 20, black)
 
     #buttons for controls
-    controlButtonSize = (200, 65)
-    resetButton = Button("Reset", controlButtonSize, buttonColor, (90, 700), 40, black, False)
-    startButton = Button("Start/Stop", controlButtonSize, buttonColor, (90, 800), 40, black)
+    controlButtonSize = (200 * imgScale, 65 * imgScale)
+    resetButton = Button("Reset", controlButtonSize, buttonColor, (90 * imgScale, 700 * imgScale), 40, black, False)
+    startButton = Button("Start/Stop", controlButtonSize, buttonColor, (90 * imgScale, 800 * imgScale), 40, black)
 
     #buttons for the graph comparisons
-    graphButtonSize = (140, 40)
-    lineGraphButton = Button("Line Graph", graphButtonSize, buttonColor, (40, 999), 25, black, False)
-    barGraphButton = Button("Bar Graph", graphButtonSize, buttonColor, (200, 999), 25, black, False)
+    graphButtonSize = (140 * imgScale, 40 * imgScale)
+    lineGraphButton = Button("Line Graph", graphButtonSize, buttonColor, 
+                            (40 * imgScale, 999 * imgScale), 
+                            25, 
+                            black, 
+                            False)
+    barGraphButton = Button("Bar Graph", graphButtonSize, buttonColor, 
+                            (200 * imgScale, 999 * imgScale), 
+                            25, 
+                            black, 
+                            False)
 
 
 
@@ -109,12 +126,18 @@ def MainMenu():
 
 
     #user boxtext inputs
-    textBoxRectWidth = 70
-    textBoxRectHeight = 40
+    textBoxRectWidth = 70 * imgScale
+    textBoxRectHeight = 40 * imgScale
 
-    minTextBox = pygame_gui.elements.UITextEntryLine(relative_rect = pygame.Rect(100, 85, textBoxRectWidth, textBoxRectHeight), manager=uiManager, object_id = "minText")
-    maxTextBox = pygame_gui.elements.UITextEntryLine(relative_rect = pygame.Rect(280, 85, textBoxRectWidth, textBoxRectHeight), manager=uiManager, object_id = "maxText")
-    numElementsTextBox = pygame_gui.elements.UITextEntryLine(relative_rect = pygame.Rect(210, 152, textBoxRectWidth, textBoxRectHeight), manager=uiManager, object_id = "numElementsText")
+    minTextBox = pygame_gui.elements.UITextEntryLine(relative_rect = pygame.Rect(100 * imgScale, 85 * imgScale, textBoxRectWidth, textBoxRectHeight), 
+                                                    manager=uiManager, 
+                                                    object_id = "minText")
+    maxTextBox = pygame_gui.elements.UITextEntryLine(relative_rect = pygame.Rect(280 * imgScale, 85 * imgScale, textBoxRectWidth, textBoxRectHeight), 
+                                                    manager=uiManager, 
+                                                    object_id = "maxText")
+    numElementsTextBox = pygame_gui.elements.UITextEntryLine(relative_rect = pygame.Rect(210 * imgScale, 152 * imgScale, textBoxRectWidth, textBoxRectHeight),
+                                                             manager=uiManager, 
+                                                             object_id = "numElementsText")
 
 
     #vars for the array size
@@ -127,6 +150,16 @@ def MainMenu():
     minTextBox.set_text(min)
     maxTextBox.set_text(max)
     numElementsTextBox.set_text(numElements)
+
+
+    #slider UI object
+    sX = 10 * imgScale
+    sY = 648 * imgScale
+    slider = pygame_gui.elements.UIHorizontalSlider(relative_rect = pygame.Rect(sX, sY, 360 * imgScale, 20 * imgScale), 
+                                                    start_value = 50, 
+                                                    value_range = [100, 0], 
+                                                    manager = uiManager)
+    speed = 75      #sets the speed for the animation
 
     #ui update loop
     while True:
@@ -187,7 +220,7 @@ def MainMenu():
 
                             # Draw the current state of the array
                             draw_graph(screen, current_arr, swap_indicies)
-                            pygame.time.delay(100)
+                            pygame.time.delay(speed)
 
                         print("After Bubble Sort:", arr)
 
@@ -250,9 +283,13 @@ def MainMenu():
                         max = "100"
 
                 if event.ui_object_id == "numElementsText":
+                    
                     numElements = event.text
                     if(not numElements):    #default case if empty
                         numElements = "50"
+
+            if event.type == pygame_gui.UI_HORIZONTAL_SLIDER_MOVED:
+                speed = event.value
 
 
         #update the text boxes every frame
@@ -353,7 +390,7 @@ MainMenu()
 
 
 
-###############################################################3
+###############################################################
 #old text box class
 #can be removed
 
