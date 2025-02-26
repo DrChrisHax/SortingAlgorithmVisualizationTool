@@ -1,9 +1,8 @@
 # Main.py
 
 # Standard Library Imports
+import sys
 import random
-
-# Third Party Imports
 
 # Local Imports
 from Algorithms import (
@@ -15,10 +14,10 @@ from Algorithms import (
 )
 
 
-def main():
+def run_tests():
     randIntLowBound = 0
-    randIntHighBound = 9999
-    numOfElems = 15
+    randIntHighBound = 1000
+    numOfElems = 25
 
     # 1. Linear Search Test
     arrSearch = [random.randint(randIntLowBound, randIntHighBound) for _ in range(numOfElems)]
@@ -60,9 +59,15 @@ def main():
     print("After: ", sortedRadix, "\n")
 
 
+def run_gui():
+    # Import the GUI only when needed.
+    from GraphicalUserInterface import VisualizerApp
+    app = VisualizerApp()
+    app.run()
 
 
-
-# Needed so python calls the right main function
 if __name__ == "__main__":
-    main()
+    if "--no-gui" in sys.argv:
+        run_tests()
+    else:
+        run_gui()
