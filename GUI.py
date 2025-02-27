@@ -26,17 +26,23 @@ BIG_O = {
     "LinearSearch": {"Time": "O(n)",       "Space": "O(1)"}
 }
 
-def plot_multi_run_results(algo_name, n_values, times, mems):
+def PlotMultiRunResults(algo_name, n_values, times, mems):
     fig, ax1 = plt.subplots()
+
+    #Lets set the name of the window to the algo name
+    fig.canvas.manager.set_window_title(algo_name)
+
     ax1.plot(n_values, times, 'b-o', label=f"Time {BIG_O.get(algo_name,{}).get('Time','')}")
     ax1.set_xlabel("n (array size)")
     ax1.set_ylabel("Runtime (s)", color='b')
     ax1.tick_params(axis='y', colors='b')
+    ax1.set_yscale('log')
     
     ax2 = ax1.twinx()
     ax2.plot(n_values, mems, 'r-o', label=f"Space {BIG_O.get(algo_name,{}).get('Space','')}")
     ax2.set_ylabel("Memory Usage (bytes)", color='r')
     ax2.tick_params(axis='y', colors='r')
+    ax2.set_yscale('log')
     
     plt.title("Complexities")
     lines1, labels1 = ax1.get_legend_handles_labels()
@@ -58,14 +64,14 @@ class VisualizerApp:
         self.visualizer_rect = pygame.Rect(self.control_width, 0, self.window_size[0]-self.control_width, self.window_size[1])
         
         self.ui_manager = pygame_gui.UIManager(self.window_size)
-        self.setup_ui()
+        self.SetUpUI()
         
-        self.reset_single_run_state()
+        self.ResetSingleRunState()
         self.running_algo = False
         self.paused = False
         self.selected_algo = None
 
-    def reset_single_run_state(self):
+    def ResetSingleRunState(self):
         self.algo_generator = None
         self.current_array = []
         self.swap_indices = None
@@ -79,7 +85,7 @@ class VisualizerApp:
         self.mem_usage = []
         self.iter_count = 0
 
-    def setup_ui(self):
+    def SetUpUI(self):
         # Lower Bound
         self.lower_bound_label = pygame_gui.elements.UILabel(
             relative_rect=pygame.Rect(20, 20, 120, 30),
@@ -142,7 +148,7 @@ class VisualizerApp:
             text="Analyze Big-O",
             manager=self.ui_manager)
 
-    def initialize_algorithm(self):
+    def InitializeAlgorithm(self):
         try:
             min_val = int(self.min_input.get_text())
             max_val = int(self.max_input.get_text())
@@ -179,7 +185,7 @@ class VisualizerApp:
         self.mem_usage = []
         self.iter_count = 0
 
-    def update_visualization(self):
+    def UpdateVisualization(self):
         if self.algo_generator and self.running_algo and not self.paused:
             current_time = time.time()
             if current_time - self.last_update_time >= self.speed_delay:
@@ -198,7 +204,7 @@ class VisualizerApp:
                 self.mem_usage.append(sys.getsizeof(self.current_array))
                 self.last_update_time = current_time
 
-    def draw_visualization(self):
+    def DrawVisualization(self):
         viz_surface = self.screen.subsurface(self.visualizer_rect)
         viz_surface.fill(LIGHTGREY)
         if not self.current_array:
@@ -219,7 +225,7 @@ class VisualizerApp:
             text_rect = text_surface.get_rect(center=(x + bar_width/2, y - 10))
             viz_surface.blit(text_surface, text_rect)
     
-    def benchmark_multi_run(self, algo_name, min_val, max_val):
+    def BenchmarkMultiRun(self, algo_name, min_val, max_val):
         n_values = [1, 10, 100, 1000, 10000]
         times = []
         mems = []
@@ -251,9 +257,9 @@ class VisualizerApp:
             times.append(total_time)
             mems.append(mem_usage)
             print(f"{algo_name}, n={n}, time={total_time:.5f}s, mem={mem_usage}")
-        plot_multi_run_results(algo_name, n_values, times, mems)
+        PlotMultiRunResults(algo_name, n_values, times, mems)
     
-    def run(self):
+    def Run(self):
         self.visualizer_rect = pygame.Rect(self.control_width, 0, self.window_size[0]-self.control_width, self.window_size[1])
         
         while True:
@@ -268,7 +274,7 @@ class VisualizerApp:
                 if event.type == pygame_gui.UI_BUTTON_PRESSED:
                     if event.ui_element == self.start_stop_button:
                         if not self.running_algo:
-                            self.initialize_algorithm()
+                            self.InitializeAlgorithm()
                             self.start_stop_button.set_text("Stop")
                         else:
                             self.paused = not self.paused
@@ -295,7 +301,7 @@ class VisualizerApp:
                             max_val = int(self.max_input.get_text())
                         except ValueError:
                             min_val, max_val = 0, 100
-                        self.benchmark_multi_run(algo_name, min_val, max_val)
+                        self.BenchmarkMultiRun(algo_name, min_val, max_val)
                 
                 if event.type == pygame_gui.UI_HORIZONTAL_SLIDER_MOVED and event.ui_element == self.speed_slider:
                     self.speed_delay = 1.0 / float(self.speed_slider.get_current_value())
@@ -304,32 +310,14 @@ class VisualizerApp:
             pygame.draw.rect(self.screen, DARKGREY, self.control_rect)
             self.ui_manager.draw_ui(self.screen)
             if self.running_algo:
-                self.update_visualization()
-                self.draw_visualization()
+                self.UpdateVisualization()
+                self.DrawVisualization()
             pygame.display.update()
-
-def plot_multi_run_results(algo_name, n_values, times, mems):
-    fig, ax1 = plt.subplots()
-    ax1.plot(n_values, times, 'b-o', label=f"Time {BIG_O.get(algo_name,{}).get('Time','')}")
-    ax1.set_xlabel("n (array size)")
-    ax1.set_ylabel("Runtime (s)", color='b')
-    ax1.tick_params(axis='y', colors='b')
-    
-    ax2 = ax1.twinx()
-    ax2.plot(n_values, mems, 'r-o', label=f"Space {BIG_O.get(algo_name,{}).get('Space','')}")
-    ax2.set_ylabel("Memory Usage (bytes)", color='r')
-    ax2.tick_params(axis='y', colors='r')
-    
-    plt.title("Complexities")
-    lines1, labels1 = ax1.get_legend_handles_labels()
-    lines2, labels2 = ax2.get_legend_handles_labels()
-    ax1.legend(lines1 + lines2, labels1 + labels2, loc="upper left")
-    plt.show()
 
 def RunGUI():
     freeze_support()
     app = VisualizerApp()
-    app.run()
+    app.Run()
 
 if __name__ == '__main__':
     RunGUI()
