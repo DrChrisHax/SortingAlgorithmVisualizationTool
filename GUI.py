@@ -99,6 +99,8 @@ class VisualizerApp:
         self.screen = pygame.display.set_mode(self.window_size, pygame.RESIZABLE)
         pygame.display.set_caption("Algorithm Visualizer")
         self.clock = pygame.time.Clock()
+        self.run_time = 0       #records time
+        self.total_time = 0
         
         # Split window: left control panel (300px wide) and right visualization area.
         self.control_width = 300
@@ -189,6 +191,12 @@ class VisualizerApp:
             relative_rect=pygame.Rect(20, 330, 120, 40),
             text="Analyze Big-O",
             manager=self.ui_manager)
+        
+        #textbox for displaying the algorithm time
+        self.time_text = pygame_gui.elements.UILabel(
+            pygame.Rect(20, 550, 200, 40), 
+            text=f"Time Spent: {self.total_time:.5f} seconds",
+            manager=self.ui_manager)
 
     def InitializeAlgorithm(self):
         try:
@@ -201,6 +209,7 @@ class VisualizerApp:
         algo_name = self.algo_dropdown.selected_option[0].strip()
         self.selected_algo = algo_name
         print("Algorithm set to:", repr(algo_name))
+        self.run_time = time.time()
         if algo_name == "LinearSearch":
             target = random.choice(arr)
             print("LinearSearch - Array:", arr)
@@ -217,6 +226,7 @@ class VisualizerApp:
         else:
             print("Unknown algorithm:", repr(algo_name))
             self.algo_generator = None
+        self.total_time = time.time() - self.run_time
         self.current_array = arr
         self.running_algo = True
         self.paused = False
@@ -355,6 +365,7 @@ class VisualizerApp:
                 if event.type == pygame_gui.UI_HORIZONTAL_SLIDER_MOVED and event.ui_element == self.speed_slider:
                     self.speed_delay = 1.0 / float(self.speed_slider.get_current_value())
             
+            self.time_text.set_text(f"Time Spent: {self.total_time:.5f} seconds")
             self.ui_manager.update(time_delta)
             pygame.draw.rect(self.screen, DARKGREY, self.control_rect)
             self.ui_manager.draw_ui(self.screen)
