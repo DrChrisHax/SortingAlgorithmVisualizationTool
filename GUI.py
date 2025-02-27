@@ -27,8 +27,9 @@ BIG_O = {
 }
 
 def BenchmarkAllAlgorithms(min_val, max_val):
+    startBenchmarkTime = time.time()
     algorithms = ["BubbleSort", "MergeSort", "QuickSort", "RadixSort", "LinearSearch"]
-    n_values = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 20, 30, 40, 50, 60, 70, 80, 90, 100, 200, 300, 400, 500, 60, 700, 800, 900, 1000]
+    n_values = [1, 2, 3, 4, 5, 10, 20, 30, 40, 50, 100, 200, 300, 400, 500, 1000, 2000, 3000, 4000]
     results = {}
     
     for algo in algorithms:
@@ -62,7 +63,10 @@ def BenchmarkAllAlgorithms(min_val, max_val):
             mem_usage = sys.getsizeof(arr)
             results[algo]["times"].append(average_time)
             results[algo]["mems"].append(mem_usage)
-            print(f"{algo}, n={n}, avg_time={average_time:.8f}s over {iterations} iterations, mem={mem_usage}")
+            print(f"{algo}, n={n}, avg_time={average_time:.8f}s over {iterations} iterations, original array mem={mem_usage}")
+    endBenchmarkTime = time.time()
+    totalTime = endBenchmarkTime - startBenchmarkTime 
+    print(f"Total Benchmark Time: {totalTime:.8f}s")
     return n_values, results
 
 def PlotAllAlgorithmsComplexity(n_values, results, metric="Time"):
@@ -185,13 +189,6 @@ class VisualizerApp:
             relative_rect=pygame.Rect(20, 330, 120, 40),
             text="Analyze Big-O",
             manager=self.ui_manager)
-        
-        # Dropdown to select the metric to display
-        self.metric_dropdown = pygame_gui.elements.UIDropDownMenu(
-            options_list=["Time Complexity", "Space Complexity"],
-            starting_option="Time Complexity",
-            relative_rect=pygame.Rect(20, 380, 150, 30),
-            manager=self.ui_manager)
 
     def InitializeAlgorithm(self):
         try:
@@ -273,8 +270,8 @@ class VisualizerApp:
     def BenchmarkAllAlgorithms(self, min_val, max_val):
         return BenchmarkAllAlgorithms(min_val, max_val)
 
-    def PlotAllAlgorithmsComplexity(self, n_values, results, metric="Time"):
-        PlotAllAlgorithmsComplexity(n_values, results, metric)
+    def PlotAllAlgorithmsComplexity(self, n_values, results):
+        PlotAllAlgorithmsComplexity(n_values, results)
 
     # def BenchmarkMultiRun(self, algo_name, min_val, max_val):
     #     # Old function for benchmarking only one algorithm
@@ -353,14 +350,7 @@ class VisualizerApp:
                         except ValueError:
                             min_val, max_val = 0, 100
                         n_values, results = self.BenchmarkAllAlgorithms(min_val, max_val)
-                        selected_metric = (self.metric_dropdown.selected_option[0]
-                                        if isinstance(self.metric_dropdown.selected_option, (list, tuple))
-                                        else self.metric_dropdown.selected_option).strip()
-                        if selected_metric == "Space Complexity":
-                            self.PlotAllAlgorithmsComplexity(n_values, results, metric="Space")
-                        else:
-                            self.PlotAllAlgorithmsComplexity(n_values, results, metric="Time")
-
+                        self.PlotAllAlgorithmsComplexity(n_values, results)
                 
                 if event.type == pygame_gui.UI_HORIZONTAL_SLIDER_MOVED and event.ui_element == self.speed_slider:
                     self.speed_delay = 1.0 / float(self.speed_slider.get_current_value())
