@@ -14,7 +14,7 @@ from Algorithms import (
 )
 
 
-def run_tests():
+def RunTests():
     randIntLowBound = 0
     randIntHighBound = 1000
     numOfElems = 25
@@ -59,15 +59,9 @@ def run_tests():
     print("After: ", sortedRadix, "\n")
 
 
-def run_gui():
-    # Import the GUI only when needed.
-    from GraphicalUserInterface import VisualizerApp
-    app = VisualizerApp()
-    app.run()
-
-
 if __name__ == "__main__":
     if "--no-gui" in sys.argv:
-        run_tests()
+        RunTests()
     else:
-        run_gui()
+        from GUI import RunGUI
+        RunGUI()
