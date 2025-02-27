@@ -26,28 +26,66 @@ BIG_O = {
     "LinearSearch": {"Time": "O(n)",       "Space": "O(1)"}
 }
 
-def PlotMultiRunResults(algo_name, n_values, times, mems):
-    fig, ax1 = plt.subplots()
-
-    #Lets set the name of the window to the algo name
-    fig.canvas.manager.set_window_title(algo_name)
-
-    ax1.plot(n_values, times, 'b-o', label=f"Time {BIG_O.get(algo_name,{}).get('Time','')}")
-    ax1.set_xlabel("n (array size)")
-    ax1.set_ylabel("Runtime (s)", color='b')
-    ax1.tick_params(axis='y', colors='b')
-    ax1.set_yscale('log')
+def BenchmarkAllAlgorithms(min_val, max_val):
+    algorithms = ["BubbleSort", "MergeSort", "QuickSort", "RadixSort", "LinearSearch"]
+    n_values = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 20, 30, 40, 50, 60, 70, 80, 90, 100, 200, 300, 400, 500, 60, 700, 800, 900, 1000]
+    results = {}
     
-    ax2 = ax1.twinx()
-    ax2.plot(n_values, mems, 'r-o', label=f"Space {BIG_O.get(algo_name,{}).get('Space','')}")
-    ax2.set_ylabel("Memory Usage (bytes)", color='r')
-    ax2.tick_params(axis='y', colors='r')
-    ax2.set_yscale('log')
-    
-    plt.title("Complexities")
-    lines1, labels1 = ax1.get_legend_handles_labels()
-    lines2, labels2 = ax2.get_legend_handles_labels()
-    ax1.legend(lines1 + lines2, labels1 + labels2, loc="upper left")
+    for algo in algorithms:
+        results[algo] = {"times": [], "mems": []}
+        for n in n_values:
+            iteration_times = []
+            iterations = 0
+            start_benchmark = time.perf_counter()
+            while time.perf_counter() - start_benchmark < 0.01:
+                # Generate a new random array for each run.
+                arr = [random.randint(min_val, max_val) for _ in range(n)]
+                start_time = time.perf_counter()
+                if algo == "LinearSearch":
+                    # Pick a random target.
+                    target = random.choice(arr) if arr else 0
+                    LinearSearchNoYield(arr, target)
+                elif algo == "BubbleSort":
+                    # Pass a copy so that the original array remains unsorted.
+                    BubbleSortNoYield(arr.copy())
+                elif algo == "MergeSort":
+                    MergeSortNoYield(arr.copy())
+                elif algo == "QuickSort":
+                    QuickSortNoYield(arr.copy())
+                elif algo == "RadixSort":
+                    RadixSortNoYield(arr.copy())
+                elapsed = time.perf_counter() - start_time
+                iteration_times.append(elapsed)
+                iterations += 1
+            # Compute the average time per call for this input size.
+            average_time = sum(iteration_times) / len(iteration_times) if iteration_times else 0
+            mem_usage = sys.getsizeof(arr)
+            results[algo]["times"].append(average_time)
+            results[algo]["mems"].append(mem_usage)
+            print(f"{algo}, n={n}, avg_time={average_time:.8f}s over {iterations} iterations, mem={mem_usage}")
+    return n_values, results
+
+def PlotAllAlgorithmsComplexity(n_values, results, metric="Time"):
+    #Plots the chosen complexity metric (either "Time" or "Space") for all algorithms on one graph.
+
+    plt.figure()
+    for algo, data in results.items():
+        if metric == "Time":
+            plt.plot(n_values, data["times"], marker='o',
+                     label=f"{algo} ({BIG_O.get(algo,{}).get('Time','')})")
+        else:
+            plt.plot(n_values, data["mems"], marker='o',
+                     label=f"{algo} ({BIG_O.get(algo,{}).get('Space','')})")
+    plt.xscale('log')
+    plt.yscale('log')
+    plt.xlabel("n (array size)")
+    if metric == "Time":
+        plt.ylabel("Runtime (s)")
+        plt.title("Time Complexity Comparison")
+    else:
+        plt.ylabel("Memory Usage (bytes)")
+        plt.title("Space Complexity Comparison")
+    plt.legend(loc="upper left")
     plt.show()
 
 class VisualizerApp:
@@ -142,10 +180,17 @@ class VisualizerApp:
             text="Reset",
             manager=self.ui_manager)
         
-        # Analyze Big-O button.
+        # Analyze Big-O button (all algorithms)
         self.analyze_button = pygame_gui.elements.UIButton(
             relative_rect=pygame.Rect(20, 330, 120, 40),
             text="Analyze Big-O",
+            manager=self.ui_manager)
+        
+        # Dropdown to select the metric to display
+        self.metric_dropdown = pygame_gui.elements.UIDropDownMenu(
+            options_list=["Time Complexity", "Space Complexity"],
+            starting_option="Time Complexity",
+            relative_rect=pygame.Rect(20, 380, 150, 30),
             manager=self.ui_manager)
 
     def InitializeAlgorithm(self):
@@ -225,39 +270,46 @@ class VisualizerApp:
             text_rect = text_surface.get_rect(center=(x + bar_width/2, y - 10))
             viz_surface.blit(text_surface, text_rect)
     
-    def BenchmarkMultiRun(self, algo_name, min_val, max_val):
-        n_values = [1, 10, 100, 1000, 10000]
-        times = []
-        mems = []
-        for n in n_values:
-            arr = [random.randint(min_val, max_val) for _ in range(n)]
-            start_time = time.time()
-            if algo_name == "LinearSearch":
-                if arr:
-                    target = random.choice(arr)
-                else:
-                    target = 0
-                from noYieldAlgorithms import LinearSearchNoYield
-                LinearSearchNoYield(arr, target)
-            else:
-                if algo_name == "BubbleSort":
-                    from noYieldAlgorithms import BubbleSortNoYield as func
-                elif algo_name == "MergeSort":
-                    from noYieldAlgorithms import MergeSortNoYield as func
-                elif algo_name == "QuickSort":
-                    from noYieldAlgorithms import QuickSortNoYield as func
-                elif algo_name == "RadixSort":
-                    from noYieldAlgorithms import RadixSortNoYield as func
-                else:
-                    print("Unknown algorithm for multi-run:", algo_name)
-                    return
-                func(arr)
-            total_time = time.time() - start_time
-            mem_usage = sys.getsizeof(arr)
-            times.append(total_time)
-            mems.append(mem_usage)
-            print(f"{algo_name}, n={n}, time={total_time:.5f}s, mem={mem_usage}")
-        PlotMultiRunResults(algo_name, n_values, times, mems)
+    def BenchmarkAllAlgorithms(self, min_val, max_val):
+        return BenchmarkAllAlgorithms(min_val, max_val)
+
+    def PlotAllAlgorithmsComplexity(self, n_values, results, metric="Time"):
+        PlotAllAlgorithmsComplexity(n_values, results, metric)
+
+    # def BenchmarkMultiRun(self, algo_name, min_val, max_val):
+    #     # Old function for benchmarking only one algorithm
+    #     n_values = [1, 10, 100, 1000, 10000]
+    #     times = []
+    #     mems = []
+    #     for n in n_values:
+    #         arr = [random.randint(min_val, max_val) for _ in range(n)]
+    #         start_time = time.time()
+    #         if algo_name == "LinearSearch":
+    #             if arr:
+    #                 target = random.choice(arr)
+    #             else:
+    #                 target = 0
+    #             from noYieldAlgorithms import LinearSearchNoYield
+    #             LinearSearchNoYield(arr, target)
+    #         else:
+    #             if algo_name == "BubbleSort":
+    #                 from noYieldAlgorithms import BubbleSortNoYield as func
+    #             elif algo_name == "MergeSort":
+    #                 from noYieldAlgorithms import MergeSortNoYield as func
+    #             elif algo_name == "QuickSort":
+    #                 from noYieldAlgorithms import QuickSortNoYield as func
+    #             elif algo_name == "RadixSort":
+    #                 from noYieldAlgorithms import RadixSortNoYield as func
+    #             else:
+    #                 print("Unknown algorithm for multi-run:", algo_name)
+    #                 return
+    #             func(arr)
+    #         total_time = time.time() - start_time
+    #         mem_usage = sys.getsizeof(arr)
+    #         times.append(total_time)
+    #         mems.append(mem_usage)
+    #         print(f"{algo_name}, n={n}, time={total_time:.5f}s, mem={mem_usage}")
+    #     PlotMultiRunResults(algo_name, n_values, times, mems)
     
     def Run(self):
         self.visualizer_rect = pygame.Rect(self.control_width, 0, self.window_size[0]-self.control_width, self.window_size[1])
@@ -285,7 +337,7 @@ class VisualizerApp:
                                 self.start_stop_button.set_text("Stop")
                                 print("Resumed.")
                     elif event.ui_element == self.reset_button:
-                        self.reset_single_run_state()
+                        self.ResetSingleRunState()
                         self.running_algo = False
                         self.start_stop_button.set_text("Start")
                         # Clear the visualization area.
@@ -295,13 +347,20 @@ class VisualizerApp:
                         # Close any open matplotlib windows.
                         plt.close('all')
                     elif event.ui_element == self.analyze_button:
-                        algo_name = self.algo_dropdown.selected_option[0].strip()
                         try:
                             min_val = int(self.min_input.get_text())
                             max_val = int(self.max_input.get_text())
                         except ValueError:
                             min_val, max_val = 0, 100
-                        self.BenchmarkMultiRun(algo_name, min_val, max_val)
+                        n_values, results = self.BenchmarkAllAlgorithms(min_val, max_val)
+                        selected_metric = (self.metric_dropdown.selected_option[0]
+                                        if isinstance(self.metric_dropdown.selected_option, (list, tuple))
+                                        else self.metric_dropdown.selected_option).strip()
+                        if selected_metric == "Space Complexity":
+                            self.PlotAllAlgorithmsComplexity(n_values, results, metric="Space")
+                        else:
+                            self.PlotAllAlgorithmsComplexity(n_values, results, metric="Time")
+
                 
                 if event.type == pygame_gui.UI_HORIZONTAL_SLIDER_MOVED and event.ui_element == self.speed_slider:
                     self.speed_delay = 1.0 / float(self.speed_slider.get_current_value())
